@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funding radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ECEFEA;
+    --surface: #F8FAF7;
+    --ink: #172529;
+    --muted: #55686A;
+    --line: #CBD3CC;
+    --teal: #0E5A5A;
+    --teal-soft: #D5E6E2;
+    --ok: #1F7A45;   --ok-bg: #D9EBDD;
+    --warn: #8A5A0B; --warn-bg: #F1E3C4;
+    --bad: #9E3131;  --bad-bg: #F0D7D5;
+    --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+    --body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.5 var(--body); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 40px 20px 72px; }
+
+  header { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; }
+  h1 { font: 700 clamp(2.4rem, 6vw, 4rem)/0.95 var(--display); letter-spacing: -0.03em; margin: 0 0 10px; }
+  .summary { color: var(--muted); margin: 0; max-width: 46ch; }
+  .summary strong { color: var(--ink); font-weight: 600; }
+
+  button, select, input { font: inherit; color: inherit; }
+  .btn { background: var(--teal); color: #fff; border: 0; border-radius: 6px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+  .btn:hover { background: #0B4747; }
+  .btn[disabled] { opacity: .6; cursor: progress; }
+  :focus-visible { outline: 3px solid #E0A526; outline-offset: 2px; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px 0; border-block: 1px solid var(--line); margin-bottom: 4px; }
+  .filters input[type=search], .filters select { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; min-height: 40px; }
+  .filters input[type=search] { flex: 1 1 220px; }
+  .filters label { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
+
+  ul.rows { list-style: none; margin: 0; padding: 0; }
+  .row { border-bottom: 1px solid var(--line); }
+  .row > button.head { width: 100%; display: grid; grid-template-columns: 120px 1fr auto; gap: 20px; align-items: center; text-align: left; background: none; border: 0; padding: 18px 4px; cursor: pointer; }
+  .row > button.head:hover { background: rgba(14, 90, 90, .05); }
+  .amount { font: 700 1.9rem/1 var(--display); letter-spacing: -0.02em; color: var(--teal); }
+  .amount.none { font: 500 .95rem var(--body); color: var(--muted); letter-spacing: 0; }
+  .name { font: 600 1.1rem/1.25 var(--display); }
+  .meta { color: var(--muted); font-size: .86rem; margin-top: 2px; }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+  .chip.valid { background: var(--ok-bg); color: var(--ok); }
+  .chip.catch_all, .chip.guessed, .chip.unverified { background: var(--warn-bg); color: var(--warn); }
+  .chip.not_found, .chip.none { background: var(--bad-bg); color: var(--bad); }
+
+  .detail { padding: 0 4px 20px 144px; }
+  .detail[hidden] { display: none; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th { text-align: left; font-weight: 500; color: var(--muted); padding: 4px 12px 6px 0; border-bottom: 1px solid var(--line); }
+  td { padding: 8px 12px 8px 0; border-bottom: 1px dotted var(--line); vertical-align: middle; }
+  td.email { font-weight: 500; word-break: break-all; }
+  .copy { background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 3px 10px; cursor: pointer; font-size: .82rem; }
+  .copy:hover { border-color: var(--teal); }
+  .links a { color: var(--teal); font-weight: 500; }
+
+  .empty { padding: 56px 0; color: var(--muted); }
+  .pager { display: flex; gap: 14px; align-items: center; justify-content: flex-end; padding-top: 22px; color: var(--muted); }
+  .pager button { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+  .pager button[disabled] { opacity: .45; cursor: default; }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 640px) {
+    .row > button.head { grid-template-columns: 1fr auto; }
+    .amount { grid-column: 1 / -1; }
+    .detail { padding-left: 4px; overflow-x: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Funding radar</h1>
+      <p class="summary" id="summary">Loading startups…</p>
+    </div>
+    <button class="btn" id="run">Run pipeline now</button>
+  </header>
+
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search by company or domain" aria-label="Search by company or domain">
+    <select id="source" aria-label="Source">
+      <option value="">All sources</option>
+      <option value="sec_form_d">SEC Form D</option>
+      <option value="rss">News feeds</option>
+      <option value="yc">Y Combinator</option>
+    </select>
+    <label><input type="checkbox" id="hasEmail"> Has contact email</label>
+  </div>
+
+  <ul class="rows" id="rows"></ul>
+  <div class="pager">
+    <button id="prev">Previous</button>
+    <span id="pageInfo"></span>
+    <button id="next">Next</button>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const SOURCES = { sec_form_d: "SEC Form D", rss: "News", yc: "Y Combinator" };
+const STATUS = { valid: "Verified", catch_all: "Catch-all domain", guessed: "Guessed", unverified: "Unverified", not_found: "Not found" };
+const state = { page: 1, pages: 1 };
+const $ = (id) => document.getElementById(id);
+
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v); }
+  for (const kid of kids) if (kid) n.append(kid);
+  return n;
+}
+function money(v) {
+  if (!v) return null;
+  if (v >= 1e9) return "$" + (v / 1e9).toFixed(1) + "B";
+  if (v >= 1e6) return "$" + (v / 1e6).toFixed(v >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M";
+  return "$" + Math.round(v / 1e3) + "K";
+}
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1800); }
+
+function renderRow(s) {
+  const withEmail = s.contacts.filter((c) => c.email);
+  const best = withEmail.find((c) => c.email_status === "valid") || withEmail[0];
+  const amt = money(s.amount_raised);
+  const badge = best ? el("span", { class: "chip " + best.email_status, text: STATUS[best.email_status] || best.email_status })
+                     : el("span", { class: "chip none", text: s.enrichment_status === "pending" ? "Queued" : "No email" });
+
+  const head = el("button", { class: "head", "aria-expanded": "false" },
+    el("div", { class: "amount" + (amt ? "" : " none"), text: amt || "Amount not disclosed" }),
+    el("div", {}, el("div", { class: "name", text: s.company_name }),
+      el("div", { class: "meta", text: [s.company_domain || "domain pending", SOURCES[s.source] || s.source, s.filing_date, s.industry].filter(Boolean).join(", ") })),
+    badge);
+
+  const detail = el("div", { class: "detail", hidden: "" });
+  if (withEmail.length || s.contacts.length) {
+    const tbody = el("tbody");
+    for (const c of s.contacts) {
+      const copy = c.email ? el("button", { class: "copy", text: "Copy" }) : null;
+      if (copy) copy.onclick = () => navigator.clipboard.writeText(c.email).then(() => toast("Copied " + c.email));
+      tbody.append(el("tr", {}, el("td", { text: c.full_name || "Shared inbox" }), el("td", { text: c.title || "" }),
+        el("td", { class: "email", text: c.email || "not found" }),
+        el("td", {}, el("span", { class: "chip " + c.email_status, text: STATUS[c.email_status] || c.email_status })),
+        el("td", {}, copy)));
+    }
+    detail.append(el("table", {}, el("thead", {}, el("tr", {}, ...["Name", "Role", "Email", "Status", ""].map((h) => el("th", { text: h })))), tbody));
+  } else {
+    detail.append(el("p", { class: "meta", text: "No contacts yet. They appear after the next pipeline run." }));
+  }
+  if (s.source_url) detail.append(el("p", { class: "links" }, el("a", { href: s.source_url, target: "_blank", rel: "noopener noreferrer", text: "Open source filing or article" })));
+
+  head.onclick = () => { const open = detail.hasAttribute("hidden"); detail.toggleAttribute("hidden", !open); head.setAttribute("aria-expanded", String(open)); };
+  return el("li", { class: "row" }, head, detail);
+}
+
+async function load() {
+  const p = new URLSearchParams({ page: state.page, page_size: 20 });
+  if ($("q").value.trim()) p.set("q", $("q").value.trim());
+  if ($("source").value) p.set("source", $("source").value);
+  if ($("hasEmail").checked) p.set("has_email", "true");
+  const [list, stats] = await Promise.all([fetch("/api/startups?" + p).then((r) => r.json()), fetch("/api/stats").then((r) => r.json())]);
+  state.pages = list.pages;
+  $("summary").replaceChildren(el("strong", { text: stats.startups }), ` startups tracked, ${stats.with_email} with a contact email and ${stats.verified_emails} verified. ${stats.pending} waiting to be enriched.`);
+  const rows = $("rows"); rows.replaceChildren();
+  if (!list.items.length) rows.append(el("li", { class: "empty", text: "Nothing matches yet. Run the pipeline, or clear the filters." }));
+  list.items.forEach((s) => rows.append(renderRow(s)));
+  $("pageInfo").textContent = `Page ${list.page} of ${list.pages}`;
+  $("prev").disabled = list.page <= 1; $("next").disabled = list.page >= list.pages;
+}
+
+$("run").onclick = async () => {
+  const btn = $("run"); btn.disabled = true;
+  let key = sessionStorage.getItem("apiKey") || "";
+  let r = await fetch("/api/pipeline/run", { method: "POST", headers: key ? { "X-API-Key": key } : {} });
+  if (r.status === 401) {
+    key = prompt("This server needs an API key to run the pipeline:") || "";
+    sessionStorage.setItem("apiKey", key);
+    r = await fetch("/api/pipeline/run", { method: "POST", headers: { "X-API-Key": key } });
+  }
+  toast(r.ok ? "Pipeline started. Refresh in a few minutes." : "Could not start the pipeline.");
+  btn.disabled = false;
+};
+let t; $("q").oninput = () => { clearTimeout(t); t = setTimeout(() => { state.page = 1; load(); }, 300); };
+$("source").onchange = $("hasEmail").onchange = () => { state.page = 1; load(); };
+$("prev").onclick = () => { state.page--; load(); };
+$("next").onclick = () => { state.page++; load(); };
+load();
+</script>
+</body>
+</html>

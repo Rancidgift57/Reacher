@@ -1,0 +1,6 @@
+# Only needed for SCHEDULER_MODE=celery (Redis broker). Run: docker compose up -d
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    restart: unless-stopped

@@ -1,0 +1,15 @@
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+SQLAlchemy==2.0.54
+psycopg2-binary==2.9.13
+pydantic==2.13.5
+pydantic-settings==2.15.0
+httpx==0.28.1
+feedparser==6.0.14
+ddgs==9.16.0
+dnspython==2.8.0
+APScheduler==3.11.3
+celery[redis]==5.6.3
+redis==6.4.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
