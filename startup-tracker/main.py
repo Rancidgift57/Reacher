@@ -1,17 +1,20 @@
 """FastAPI app: REST API + dashboard + (optional) in-process scheduler."""
 import logging
 import math
+import re
 from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from config import get_settings
 from db import get_db, init_db
+from enrichment.smtp_verifier import SMTPVerifier
 from models.orm import Contact, Startup
 from models.schemas import Page, StartupOut
 from tasks.pipeline import run_pipeline
@@ -106,6 +109,35 @@ async def trigger_pipeline(background: BackgroundTasks, x_api_key: str | None = 
     else:
         background.add_task(run_pipeline)
     return {"status": "queued"}
+
+
+# ---------------------------------------------------------------------------
+# Real SMTP-level email verification, exposed over HTTP for other services
+# (e.g. the Cloudflare-Worker-based Argmax Outreach project) to call. This
+# just wraps the existing SMTPVerifier -- no new verification logic -- because
+# Cloudflare Workers cannot open outbound TCP connections on port 25 (the
+# Workers runtime blocks it by default), so the actual RCPT-TO handshake has
+# to run somewhere with normal outbound network access, like this FastAPI app.
+# One process-lifetime SMTPVerifier instance is reused across requests so its
+# internal MX/catch-all caches (see enrichment/smtp_verifier.py) actually help.
+# ---------------------------------------------------------------------------
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+_verifier = SMTPVerifier()
+
+
+class VerifyEmailRequest(BaseModel):
+    email: str
+
+
+@app.post("/api/verify-email")
+async def verify_email(payload: VerifyEmailRequest, x_api_key: str | None = Header(None)):
+    if settings.api_key and x_api_key != settings.api_key:
+        raise HTTPException(401, "Invalid or missing X-API-Key")
+    email = payload.email.strip()
+    if not _EMAIL_RE.match(email):
+        return {"email": email, "status": "invalid", "detail": "malformed address"}
+    result = await _verifier.verify(email)
+    return {"email": result.email, "status": result.status, "detail": result.detail}
 
 
 @app.get("/health")
