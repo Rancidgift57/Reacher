@@ -1,0 +1,10 @@
+{
+  "name": "argmax-outreach",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/core.js && node --check src/index.js"
+  }
+}

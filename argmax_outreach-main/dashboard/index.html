@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Argmax Outreach — Console</title>
+<style>
+  :root{
+    --ink:#1a2129; --ink-soft:#4b5563; --paper:#f6f7f5; --panel:#ffffff;
+    --line:#e1e4e1; --line-soft:#edefec; --accent:#2c6e63; --accent-soft:#e4efec;
+    --amber:#b5711f; --amber-soft:#f6ead9; --red:#a83a3a; --red-soft:#f7e4e2;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --radius: 6px;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:var(--sans); background:var(--paper); color:var(--ink); }
+  a{ color:inherit; }
+  button{ font-family:inherit; }
+
+  .shell{ display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+  .side{ background:var(--panel); border-right:1px solid var(--line); padding:20px 14px; display:flex; flex-direction:column; gap:2px; }
+  .brand{ font-weight:700; font-size:15px; letter-spacing:.2px; padding:6px 10px 18px; }
+  .brand small{ display:block; font-weight:400; color:var(--ink-soft); font-size:11px; margin-top:2px; }
+  .nav-item{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:var(--radius); cursor:pointer; font-size:13.5px; color:var(--ink-soft); }
+  .nav-item:hover{ background:var(--line-soft); color:var(--ink); }
+  .nav-item.active{ background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .side-footer{ margin-top:auto; padding-top:14px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-soft); }
+
+  .main{ padding:22px 28px 60px; max-width:1180px; }
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+  .topbar h1{ font-size:19px; margin:0 0 3px; }
+  .topbar p{ margin:0; color:var(--ink-soft); font-size:13px; }
+  .conn{ display:flex; gap:8px; align-items:center; }
+  .conn input{ font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); width:170px; }
+  .conn button{ font-size:12px; padding:6px 10px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); cursor:pointer; }
+  .conn .dot{ width:7px; height:7px; border-radius:50%; background:var(--line); display:inline-block; }
+  .conn .dot.ok{ background:var(--accent); } .conn .dot.bad{ background:var(--red); }
+
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; }
+  .card .num{ font-family:var(--mono); font-size:22px; font-weight:600; }
+  .card .lbl{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+
+  table{ width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; font-size:13px; }
+  th{ text-align:left; font-size:11px; text-transform:none; color:var(--ink-soft); font-weight:600; padding:9px 12px; border-bottom:1px solid var(--line); background:var(--line-soft); }
+  td{ padding:9px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  tr.row-click{ cursor:pointer; } tr.row-click:hover{ background:var(--line-soft); }
+
+  .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .pill.high{ background:var(--amber-soft); color:var(--amber); }
+  .pill.err{ background:var(--red-soft); color:var(--red); }
+  .pill.ok{ background:var(--accent-soft); color:var(--accent); }
+  .pill.muted{ background:var(--line-soft); color:var(--ink-soft); }
+
+  .section-title{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin:22px 0 8px; font-weight:600; }
+  .section-title:first-child{ margin-top:0; }
+
+  .btn{ font-size:12.5px; padding:6px 11px; border-radius:var(--radius); border:1px solid var(--line); background:var(--panel); cursor:pointer; }
+  .btn:hover{ background:var(--line-soft); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover{ opacity:.92; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
+
+  .empty{ padding:26px; text-align:center; color:var(--ink-soft); font-size:13px; background:var(--panel); border:1px dashed var(--line); border-radius:var(--radius); }
+  .muted-text{ color:var(--ink-soft); font-size:12.5px; }
+  .mono{ font-family:var(--mono); font-size:12px; }
+
+  .drawer-backdrop{ position:fixed; inset:0; background:rgba(20,24,20,.25); display:none; }
+  .drawer-backdrop.open{ display:block; }
+  .drawer{ position:fixed; top:0; right:0; bottom:0; width:min(560px, 92vw); background:var(--panel); border-left:1px solid var(--line); box-shadow:-8px 0 24px rgba(0,0,0,.08); transform:translateX(100%); transition:transform .18s ease; overflow-y:auto; padding:22px 24px 60px; }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-close{ position:absolute; top:16px; right:18px; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-soft); }
+  .kv{ display:grid; grid-template-columns:110px 1fr; gap:5px 10px; font-size:12.5px; margin:10px 0; }
+  .kv div:nth-child(odd){ color:var(--ink-soft); }
+  .evidence-box{ background:var(--line-soft); border-radius:var(--radius); padding:10px 12px; font-size:12px; margin:6px 0; }
+  .draft-box{ border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin:8px 0; }
+  .toast{ position:fixed; bottom:18px; right:18px; background:var(--ink); color:#fff; padding:9px 14px; border-radius:var(--radius); font-size:13px; opacity:0; transform:translateY(6px); transition:.15s; pointer-events:none; }
+  .toast.show{ opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side">
+    <div class="brand">Argmax Outreach<small>operator console</small></div>
+    <div class="nav-item active" data-view="dashboard">Dashboard</div>
+    <div class="nav-item" data-view="companies">Companies</div>
+    <div class="nav-item" data-view="discovery">Discovery</div>
+    <div class="nav-item" data-view="notifications">Notifications</div>
+    <div class="nav-item" data-view="activity">Activity</div>
+    <div class="nav-item" data-view="analytics">Analytics</div>
+    <div class="nav-item" data-view="exports">Exports</div>
+    <div class="side-footer">Send mode: <span id="sendModeTag" class="mono">—</span></div>
+  </nav>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="viewTitle">Dashboard</h1>
+        <p id="viewSubtitle">Company and outreach activity for the last discovery cycle.</p>
+      </div>
+      <div class="conn">
+        <span class="dot" id="connDot"></span>
+        <input id="apiBase" placeholder="https://your-worker.workers.dev" />
+        <input id="apiToken" placeholder="admin token" type="password" />
+        <button id="connSave">Connect</button>
+      </div>
+    </div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<div class="drawer-backdrop" id="drawerBackdrop">
+  <div class="drawer" id="drawer">
+    <button class="drawer-close" id="drawerClose">✕</button>
+    <div id="drawerBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const state = {
+  base: localStorage.getItem("argmax_api_base") || "",
+  token: localStorage.getItem("argmax_api_token") || "",
+  view: "dashboard"
+};
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+async function api(path, opts = {}) {
+  if (!state.base) throw new Error("Set the Worker URL and admin token above first.");
+  const response = await fetch(state.base.replace(/\/$/, "") + path, {
+    ...opts,
+    headers: { "content-type": "application/json", authorization: `Bearer ${state.token}`, ...(opts.headers || {}) }
+  });
+  if (!response.ok) {
+    let detail = ""; try { detail = (await response.json()).error || ""; } catch {}
+    throw new Error(detail || `Request failed (${response.status})`);
+  }
+  const contentType = response.headers.get("content-type") || "";
+  return contentType.includes("application/json") ? response.json() : response;
+}
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "text") node.textContent = v;
+    else if (k === "html") node.innerHTML = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const child of [].concat(children)) if (child) node.appendChild(child);
+  return node;
+}
+
+function pill(text, kind = "muted") { return el("span", { class: `pill ${kind}`, text }); }
+function fmtDate(iso) { if (!iso) return "—"; const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
+
+// ---- Views -----------------------------------------------------------------
+
+async function renderDashboard(root) {
+  const data = await api("/api/dashboard");
+  document.getElementById("sendModeTag").textContent = data.send_mode;
+  const counts = { companies: 0, enrollments: 0, outbox: 0 };
+  for (const row of data.companies || []) counts.companies += row.count;
+  for (const row of data.enrollments || []) counts.enrollments += row.count;
+  for (const row of data.outbox || []) counts.outbox += row.count;
+
+  const cards = el("div", { class: "cards" }, [
+    metricCard(data.new_companies_today, "New companies today"),
+    metricCard(counts.companies, "Total companies"),
+    metricCard(counts.enrollments, "Enrollments"),
+    metricCard(data.unread_notifications, "Unread notifications"),
+    metricCard(data.suppressions, "Suppressed contacts")
+  ]);
+  root.appendChild(cards);
+
+  root.appendChild(el("div", { class: "section-title", text: "Top discovery sources" }));
+  root.appendChild(simpleTable(["Provider", "Companies found"], (data.top_discovery_sources || []).map((r) => [r.provider_type, r.count])));
+
+  root.appendChild(el("div", { class: "section-title", text: "Recent discovery runs" }));
+  root.appendChild(simpleTable(["Provider", "Status", "Found", "New", "Started"], (data.recent_discovery_runs || []).map((r) => [r.provider, r.status, r.items_found, r.items_new, fmtDate(r.started_at)])));
+
+  root.appendChild(el("div", { class: "section-title", text: "Recent activity" }));
+  root.appendChild(simpleTable(["Type", "Summary", "When"], (data.recent_activity || []).map((r) => [r.type, r.summary, fmtDate(r.created_at)])));
+}
+
+function metricCard(value, label) { return el("div", { class: "card" }, [el("div", { class: "num", text: value ?? "—" }), el("div", { class: "lbl", text: label })]); }
+
+function simpleTable(headers, rows) {
+  if (!rows.length) return el("div", { class: "empty", text: "Nothing here yet." });
+  const thead = el("tr", {}, headers.map((h) => el("th", { text: h })));
+  const tbody = rows.map((row) => el("tr", {}, row.map((cell) => el("td", { text: cell ?? "—" }))));
+  return el("table", {}, [el("thead", {}, thead), el("tbody", {}, tbody)]);
+}
+
+async function renderCompanies(root) {
+  const { companies } = await api("/api/companies?limit=100");
+  if (!companies.length) { root.appendChild(el("div", { class: "empty", text: "No companies discovered yet. Trigger discovery from the Discovery tab." })); return; }
+  const thead = el("tr", {}, ["Company", "Domain", "Status", "Discovered"].map((h) => el("th", { text: h })));
+  const tbody = companies.map((c) => el("tr", { class: "row-click", onclick: () => openCompanyDrawer(c.id) }, [
+    el("td", { text: c.name }), el("td", { class: "mono", text: c.domain }),
+    el("td", {}, pill(c.status, c.status === "qualified" ? "ok" : "muted")),
+    el("td", { class: "muted-text", text: fmtDate(c.created_at) })
+  ]));
+  root.appendChild(el("table", {}, [el("thead", {}, thead), el("tbody", {}, tbody)]));
+}
+
+async function openCompanyDrawer(companyId) {
+  const backdrop = document.getElementById("drawerBackdrop"); const drawer = document.getElementById("drawer"); const body = document.getElementById("drawerBody");
+  backdrop.classList.add("open"); drawer.classList.add("open");
+  body.innerHTML = "<p class='muted-text'>Loading…</p>";
+  try {
+    const detail = await api(`/api/companies/${companyId}`);
+    body.innerHTML = "";
+    body.appendChild(el("h2", { text: detail.company.name, style: "margin:4px 0 0; font-size:18px;" }));
+    body.appendChild(el("div", { class: "muted-text mono", text: detail.company.domain }));
+
+    body.appendChild(el("div", { class: "btn-row" }, [
+      el("button", { class: "btn", text: "Run research", onclick: async () => { await api(`/api/leads/${companyId}/research`, { method: "POST" }); toast("Research generated"); openCompanyDrawer(companyId); } }),
+      el("button", { class: "btn", text: "Enrich from website", onclick: async () => { await api(`/api/enrichment/${companyId}`, { method: "POST" }); toast("Enrichment attempted"); openCompanyDrawer(companyId); } }),
+      el("button", { class: "btn", text: "Find contacts", onclick: async () => { await api(`/api/contacts/discover/${companyId}`, { method: "POST" }); toast("Contact discovery attempted"); openCompanyDrawer(companyId); } }),
+      el("button", { class: "btn primary", text: "Generate email", onclick: async () => { try { await api(`/api/leads/${companyId}/generate-email`, { method: "POST", body: "{}" }); toast("Draft generated"); openCompanyDrawer(companyId); } catch (e) { toast(e.message); } } })
+    ]));
+
+    if (detail.lead_reason) {
+      body.appendChild(el("div", { class: "section-title", text: `Why this lead — score ${detail.lead_reason.signal_score}` }));
+      const why = JSON.parse(detail.lead_reason.why_json || "[]");
+      body.appendChild(el("ul", { style: "margin:4px 0; padding-left:18px; font-size:13px;" }, why.map((w) => el("li", { text: w }))));
+      body.appendChild(el("div", { class: "muted-text", text: detail.lead_reason.reason_for_contact || "" }));
+    }
+
+    if (detail.research) {
+      body.appendChild(el("div", { class: "section-title", text: "Research summary" }));
+      body.appendChild(el("div", { class: "evidence-box", text: detail.research.company_summary }));
+      const evidence = JSON.parse(detail.research.evidence_json || "[]");
+      for (const e of evidence) body.appendChild(el("div", { class: "evidence-box mono", text: `${e.excerpt}  —  ${e.source_url || "no url"}` }));
+    }
+
+    body.appendChild(el("div", { class: "section-title", text: `Contacts (${detail.contacts.length})` }));
+    if (!detail.contacts.length) body.appendChild(el("div", { class: "empty", text: "No contacts found yet." }));
+    for (const c of detail.contacts) {
+      body.appendChild(el("div", { class: "kv" }, [
+        el("div", { text: "Email" }), el("div", { class: "mono", text: c.email }),
+        el("div", { text: "Title" }), el("div", { text: c.title || "—" }),
+        el("div", { text: "Status" }), el("div", {}, pill(c.verification_status, c.verification_status === "valid" ? "ok" : c.verification_status === "invalid" ? "err" : "muted"))
+      ]));
+      body.appendChild(el("button", { class: "btn", text: "Verify email (DNS)", onclick: async () => { await api(`/api/contacts/${c.id}/verify`, { method: "POST" }); toast("Verification attempted"); openCompanyDrawer(companyId); } }));
+    }
+
+    body.appendChild(el("div", { class: "section-title", text: "Email drafts" }));
+    const draftsResp = await api(`/api/leads/${companyId}/drafts`).catch(() => ({ drafts: [] }));
+    if (!draftsResp.drafts.length) body.appendChild(el("div", { class: "empty", text: "No drafts generated yet." }));
+    for (const d of draftsResp.drafts) {
+      const validation = JSON.parse(d.validation_json || "{}");
+      body.appendChild(el("div", { class: "draft-box" }, [
+        el("div", { style: "display:flex; justify-content:space-between; align-items:center;" }, [
+          el("strong", { text: d.subject }), pill(d.valid ? "claims supported" : "blocked", d.valid ? "ok" : "err")
+        ]),
+        el("p", { style: "font-size:13px; white-space:pre-wrap;", text: d.body }),
+        el("div", { class: "muted-text", text: `${d.ai_provider || "—"} / ${d.ai_model || "—"} · ${fmtDate(d.generated_at)}` })
+      ]));
+    }
+  } catch (err) { body.innerHTML = `<p class="muted-text">${err.message}</p>`; }
+}
+
+async function renderDiscovery(root) {
+  const [sourcesResp, runsResp] = await Promise.all([api("/api/discovery/sources"), api("/api/discovery/runs")]);
+  root.appendChild(el("div", { class: "btn-row" }, [
+    el("button", { class: "btn primary", text: "Run discovery now", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Running…"; try { const r = await api("/api/discovery/run", { method: "POST" }); toast(`Discovery complete: ${r.candidates ?? 0} new candidates`); load(); } catch (err) { toast(err.message); } } })
+  ]));
+  root.appendChild(el("div", { class: "section-title", text: "Sources" }));
+  const sourceRows = sourcesResp.sources.map((s) => [
+    s.name, s.provider_type, s.enabled ? pill("enabled", "ok") : pill("disabled", "muted"), fmtDate(s.last_run_at), s.last_error || "—"
+  ]);
+  root.appendChild(tableWithNodes(["Name", "Provider", "State", "Last run", "Last error"], sourceRows, sourcesResp.sources, (s, tr) => {
+    const toggleBtn = el("button", { class: "btn", text: s.enabled ? "Disable" : "Enable" });
+    toggleBtn.addEventListener("click", async () => { await api(`/api/discovery/sources/${s.id}`, { method: "POST", body: JSON.stringify({ enabled: !s.enabled }) }); load(); });
+    tr.appendChild(el("td", {}, toggleBtn));
+  }, ["Toggle"]));
+
+  root.appendChild(el("div", { class: "section-title", text: "Recent runs" }));
+  root.appendChild(simpleTable(["Provider", "Status", "Found", "New", "Duplicate", "Failed", "Started"], runsResp.runs.map((r) => [r.provider, r.status, r.items_found, r.items_new, r.items_duplicate, r.items_failed, fmtDate(r.started_at)])));
+}
+
+function tableWithNodes(headers, rows, items, extraCellFn, extraHeaders = []) {
+  const thead = el("tr", {}, [...headers, ...extraHeaders].map((h) => el("th", { text: h })));
+  const tbody = items.map((item, i) => {
+    const tr = el("tr", {}, rows[i].map((cell) => (cell instanceof Node ? el("td", {}, cell) : el("td", { text: cell ?? "—" }))));
+    if (extraCellFn) extraCellFn(item, tr);
+    return tr;
+  });
+  return el("table", {}, [el("thead", {}, thead), el("tbody", {}, tbody)]);
+}
+
+async function renderNotifications(root) {
+  const { notifications } = await api("/api/notifications");
+  if (!notifications.length) { root.appendChild(el("div", { class: "empty", text: "No notifications yet." })); return; }
+  for (const n of notifications) {
+    const row = el("div", { class: "draft-box" }, [
+      el("div", { style: "display:flex; justify-content:space-between; align-items:center; gap:10px;" }, [
+        el("strong", { text: n.title }),
+        pill(n.severity, n.severity === "high" ? "high" : n.severity === "error" ? "err" : "muted")
+      ]),
+      el("p", { style: "font-size:13px; margin:6px 0;", text: n.message }),
+      el("div", { class: "muted-text", text: fmtDate(n.created_at) })
+    ]);
+    if (!n.read) row.appendChild(el("button", { class: "btn", text: "Mark read", onclick: async () => { await api(`/api/notifications/${n.id}/read`, { method: "POST" }); load(); } }));
+    root.appendChild(row);
+  }
+}
+
+async function renderActivity(root) {
+  const { activity } = await api("/api/activity");
+  root.appendChild(simpleTable(["Type", "Summary", "When"], activity.map((a) => [a.type, a.summary, fmtDate(a.created_at)])));
+}
+
+async function renderAnalytics(root) {
+  const [overview, funnel, ai, sources] = await Promise.all([
+    api("/api/analytics/overview"), api("/api/analytics/funnel"), api("/api/analytics/ai"), api("/api/analytics/sources")
+  ]);
+  root.appendChild(el("div", { class: "cards" }, [
+    metricCard(overview.companies, "Companies"), metricCard(overview.qualified_leads, "Qualified leads"),
+    metricCard(overview.verified_contacts, "Verified contacts"), metricCard(overview.emails_sent, "Emails sent"),
+    metricCard(overview.replies, "Replies"), metricCard(overview.bounces, "Bounces")
+  ]));
+  root.appendChild(el("div", { class: "section-title", text: "Funnel" }));
+  root.appendChild(simpleTable(["Stage", "Count"], Object.entries(funnel.stages).map(([k, v]) => [k.replace(/_/g, " "), v])));
+  root.appendChild(el("div", { class: "section-title", text: "AI usage" }));
+  root.appendChild(el("div", { class: "cards" }, [
+    metricCard(ai.total_calls, "Total AI calls"), metricCard((ai.failure_rate * 100).toFixed(1) + "%", "Failure rate"),
+    metricCard("$" + (ai.estimated_cost_usd || 0).toFixed(4), "Est. cost")
+  ]));
+  root.appendChild(simpleTable(["Provider", "Calls", "Input tokens", "Output tokens"], ai.by_provider.map((p) => [p.provider, p.calls, p.input_tokens || 0, p.output_tokens || 0])));
+  root.appendChild(el("div", { class: "section-title", text: "Discovery sources" }));
+  root.appendChild(simpleTable(["Provider", "Companies", "Qualified"], sources.sources.map((s) => [s.provider_type, s.companies, s.qualified || 0])));
+}
+
+function renderExports(root) {
+  const links = [
+    ["Companies (CSV)", "/api/export/companies.csv"], ["Leads (CSV)", "/api/export/leads.csv"],
+    ["Leads (XLSX)", "/api/export/leads.xlsx"], ["Contacts (CSV)", "/api/export/contacts.csv"], ["Outreach (CSV)", "/api/export/outreach.csv"]
+  ];
+  root.appendChild(el("div", { class: "btn-row" }, links.map(([label, path]) => el("button", {
+    class: "btn", text: label,
+    onclick: async () => {
+      try {
+        const response = await api(path);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = el("a", { href: url, download: path.split("/").pop() });
+        document.body.appendChild(a); a.click(); a.remove();
+        toast(`Downloaded ${path.split("/").pop()}`);
+      } catch (err) { toast(err.message); }
+    }
+  }))));
+  root.appendChild(el("p", { class: "muted-text", text: "Files download directly from your Worker; nothing is stored in this console.", style: "margin-top:14px;" }));
+}
+
+const VIEWS = {
+  dashboard: { title: "Dashboard", subtitle: "Company and outreach activity for the last discovery cycle.", render: renderDashboard },
+  companies: { title: "Companies", subtitle: "Every company discovered, most recent first.", render: renderCompanies },
+  discovery: { title: "Discovery", subtitle: "Sources, runs, and manual triggers.", render: renderDiscovery },
+  notifications: { title: "Notifications", subtitle: "High-value leads, replies, bounces, and errors.", render: renderNotifications },
+  activity: { title: "Activity", subtitle: "A live feed of everything the pipeline has done.", render: renderActivity },
+  analytics: { title: "Analytics", subtitle: "Funnel conversion, AI usage and cost, source performance.", render: renderAnalytics },
+  exports: { title: "Exports", subtitle: "Download CSV or XLSX snapshots of current data.", render: renderExports }
+};
+
+async function load() {
+  const content = document.getElementById("content");
+  content.innerHTML = "";
+  const view = VIEWS[state.view];
+  document.getElementById("viewTitle").textContent = view.title;
+  document.getElementById("viewSubtitle").textContent = view.subtitle;
+  if (!state.base) { content.appendChild(el("div", { class: "empty", text: "Enter your Worker URL and admin token above, then click Connect." })); return; }
+  try { await view.render(content); document.getElementById("connDot").className = "dot ok"; }
+  catch (err) { document.getElementById("connDot").className = "dot bad"; content.appendChild(el("div", { class: "empty", text: err.message })); }
+}
+
+document.querySelectorAll(".nav-item").forEach((item) => item.addEventListener("click", () => {
+  document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+  item.classList.add("active"); state.view = item.dataset.view; load();
+}));
+document.getElementById("drawerClose").addEventListener("click", () => { document.getElementById("drawerBackdrop").classList.remove("open"); document.getElementById("drawer").classList.remove("open"); });
+document.getElementById("drawerBackdrop").addEventListener("click", (e) => { if (e.target.id === "drawerBackdrop") e.currentTarget.classList.remove("open"); });
+document.getElementById("connSave").addEventListener("click", () => {
+  state.base = document.getElementById("apiBase").value.trim();
+  state.token = document.getElementById("apiToken").value.trim();
+  localStorage.setItem("argmax_api_base", state.base);
+  localStorage.setItem("argmax_api_token", state.token);
+  load();
+});
+document.getElementById("apiBase").value = state.base;
+document.getElementById("apiToken").value = state.token;
+load();
+</script>
+</body>
+</html>

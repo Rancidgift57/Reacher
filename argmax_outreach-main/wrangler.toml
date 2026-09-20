@@ -1,0 +1,62 @@
+name = "argmax-outreach"
+main = "src/index.js"
+compatibility_date = "2026-09-14"
+
+# Create these resources before deployment, then replace the placeholders.
+[[d1_databases]]
+binding = "DB"
+database_name = "argmax-outreach"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[queues.producers]]
+binding = "OUTREACH_QUEUE"
+queue = "argmax-outreach"
+
+[[queues.consumers]]
+queue = "argmax-outreach"
+max_batch_size = 10
+max_retries = 3
+
+[vars]
+APP_BASE_URL = "https://outreach.example.com"
+SEND_MODE = "dry_run"
+DAILY_SEND_LIMIT = "10"
+REPLY_SYNC_MAX_AGE_MINUTES = "30"
+DISCOVERY_ENABLED = "true"
+YC_ENABLED = "true"
+HIGH_VALUE_LEAD_THRESHOLD = "70"
+LEAD_QUALIFICATION_THRESHOLD = "75"
+AUTO_SEND_ENABLED = "false"
+HUNTER_MONTHLY_BUDGET = "45"
+APOLLO_MONTHLY_BUDGET = "100"
+AI_PRIMARY_PROVIDER = "gemini"
+AI_PRIMARY_MODEL = "gemini-2.0-flash"
+AI_FALLBACK_PROVIDER = "groq"
+AI_FALLBACK_MODEL = "llama-3.3-70b-versatile"
+AI_TERTIARY_PROVIDER = "cloudflare"
+AI_TERTIARY_MODEL = "@cf/zai-org/glm-4.7-flash"
+AI_MAX_RETRIES = "2"
+AI_MAX_OUTPUT_TOKENS = "800"
+AI_TEMPERATURE = "0.2"
+SLACK_ENABLED = "false"
+DISCORD_ENABLED = "false"
+
+# Cloudflare Workers AI binding: lets the "cloudflare" AI tier run with no API key.
+# Remove this block if you don't want Workers AI as the tertiary fallback.
+[ai]
+binding = "AI"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Set these with `wrangler secret put`, never in this file:
+# ADMIN_TOKEN, WEBHOOK_SECRET, SENDER_EMAIL, SENDER_NAME, SENDER_POSTAL_ADDRESS
+# EMAIL_API_URL, EMAIL_API_TOKEN
+# ENRICHMENT_API_URL, ENRICHMENT_API_TOKEN
+# FUNDING_PROVIDER_API_URL, FUNDING_PROVIDER_API_TOKEN
+# CONTACT_PROVIDER_API_URL, CONTACT_PROVIDER_API_TOKEN (reserved for a future licensed adapter; unused today)
+# HUNTER_API_KEY (free-plan email/contact search)
+# APOLLO_API_KEY (free-plan people search)
+# SMTP_VERIFY_API_URL, SMTP_VERIFY_API_KEY (e.g. your own Reacher/startup-tracker deployment)
+# GEMINI_API_KEY, GROQ_API_KEY
+# SLACK_WEBHOOK_URL, DISCORD_WEBHOOK_URL
